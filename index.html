@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f5f7fb">
+<title>爬梯子分工遊戲</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#182230;--muted:#64748b;--line:#dbe3ef;--primary:#5267e8;--primary-dark:#3d4fc7;--accent:#e8edff;--green:#147d57;--shadow:0 12px 32px rgba(31,48,86,.08)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 5% 0%,#e9edff 0,transparent 28rem),var(--bg);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;color:var(--ink);line-height:1.55}
+header{padding:36px 20px 24px;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);padding:6px 12px;border-radius:999px;font-size:.84rem;color:var(--primary-dark);font-weight:700}
+h1{font-size:clamp(1.8rem,4vw,2.7rem);letter-spacing:.02em;margin:14px 0 8px}
+header p{margin:0 auto;max-width:650px;color:var(--muted)}
+main{max-width:1200px;margin:0 auto;padding:0 18px 48px}
+.layout{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);gap:20px;align-items:start}
+.panel,.game-panel{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+.panel{padding:22px;position:sticky;top:14px}
+h2{font-size:1.13rem;margin:0 0 5px}
+.section-intro{font-size:.9rem;color:var(--muted);margin:0 0 18px}
+label{display:block;font-weight:700;font-size:.93rem;margin:14px 0 7px}
+textarea,input{width:100%;font:inherit;border:1px solid #cbd5e1;border-radius:11px;background:#fbfcff;padding:11px 12px;color:var(--ink);outline:none}
+textarea{resize:vertical;min-height:135px;line-height:1.65}
+textarea:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px #5267e822}
+.hint{font-size:.8rem;color:var(--muted);margin:6px 0 0}
+.counts{display:flex;gap:8px;margin:12px 0 4px}
+.count{flex:1;background:#f6f8fc;border:1px solid var(--line);padding:10px;border-radius:12px;text-align:center}
+.count strong{display:block;font-size:1.2rem}
+.count span{font-size:.78rem;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:17px}
+button{font:inherit;font-weight:750;border:0;border-radius:11px;padding:11px 15px;cursor:pointer;transition:transform .15s,background .15s,opacity .15s}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:var(--primary);color:#fff;flex:1;box-shadow:0 5px 14px #5267e833}
+.primary:hover:not(:disabled){background:var(--primary-dark)}
+.secondary{background:#eef2ff;color:#3949ab}
+.ghost{background:#f1f5f9;color:#334155}
+.status{font-size:.88rem;color:var(--muted);margin:12px 0 0;min-height:1.4em}
+.status.error{color:#b42318}
+.game-panel{padding:22px;min-width:0}
+.game-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.game-head p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.pill{background:#edf2ff;color:#4655c5;border-radius:999px;padding:5px 10px;font-size:.8rem;font-weight:750}
+.ladder-wrap{margin-top:18px;border:1px solid var(--line);background:linear-gradient(180deg,#fbfcff,#fff);border-radius:16px;overflow-x:auto;min-height:260px}
+#ladderSvg{display:block;width:100%;min-width:500px;height:auto;max-height:none}
+.placeholder{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;color:var(--muted)}
+.placeholder .icon{font-size:2.4rem;margin-bottom:8px}
+.placeholder strong{color:var(--ink);font-size:1.08rem}
+.result-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:23px 0 12px}
+.result-head h2{margin:0}
+.result-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.result-card{border:1px solid var(--line);border-radius:13px;padding:12px 14px;background:#fff;display:flex;align-items:center;gap:11px;min-width:0}
+.result-number{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:var(--accent);color:var(--primary-dark);display:grid;place-items:center;font-weight:800}
+.result-name{font-weight:750;overflow-wrap:anywhere}
+.result-arrow{color:#94a3b8;font-size:.8rem}
+.result-value{font-weight:750;color:var(--green);overflow-wrap:anywhere}
+.hidden{display:none!important}
+footer{text-align:center;color:var(--muted);font-size:.83rem;padding:0 18px 28px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.panel{position:static}.panel textarea{min-height:110px}.game-panel{padding:16px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">🎲 小組分工小工具</div>
+  <h1>爬梯子抽選遊戲</h1>
+  <p>輸入組員與工作項目，讓每一條路徑決定最後分工。公平、直覺，也讓抽選過程更有趣。</p>
+</header>
+<main>
+  <div class="layout">
+    <aside class="panel">
+      <h2>⚙️ 遊戲設定</h2>
+      <p class="section-intro">每行輸入一位組員或一個抽選結果，兩邊數量需相同。</p>
+      <label for="names">組員姓名</label>
+      <textarea id="names" spellcheck="false" aria-describedby="namesHint">小明
+小華
+小美
+阿哲
+小安</textarea>
+      <p class="hint" id="namesHint">可輸入姓名或暱稱，每行一位。</p>
+      <label for="outcomes">抽選結果／工作項目</label>
+      <textarea id="outcomes" spellcheck="false" aria-describedby="outcomesHint">資料蒐集
+簡報設計
+口頭報告
+文獻整理
+統整與校稿</textarea>
+      <p class="hint" id="outcomesHint">例如：資料蒐集、簡報製作、報告上台。</p>
+      <div class="counts" aria-live="polite">
+        <div class="count"><strong id="nameCount">5</strong><span>位組員</span></div>
+        <div class="count"><strong id="outcomeCount">5</strong><span>個結果</span></div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="startBtn">▶ 開始抽選</button>
+        <button class="secondary" id="sampleBtn" type="button">載入範例</button>
+        <button class="ghost" id="clearBtn" type="button">清除結果</button>
+      </div>
+      <p class="status" id="status" role="status">設定完成後，按下「開始抽選」。</p>
+    </aside>
+
+    <section class="game-panel" aria-label="爬梯子遊戲區">
+      <div class="game-head">
+        <div>
+          <h2>🪜 梯子路徑</h2>
+          <p>從上方組員出發，遇到橫梯就左右轉換，沿路走到底部。</p>
+        </div>
+        <span class="pill" id="gameState">尚未開始</span>
+      </div>
+      <div class="ladder-wrap" id="ladderWrap">
+        <div class="placeholder" id="placeholder">
+          <div class="icon">🪜</div>
+          <strong>準備開始你的分工抽選</strong>
+          <span>抽選後，梯子與每位組員的路徑會顯示在這裡。</span>
+        </div>
+        <svg id="ladderSvg" class="hidden" role="img" aria-label="爬梯子路徑圖" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="result-head">
+        <h2>📋 分工結果</h2>
+        <button class="secondary" id="copyBtn" type="button" disabled>複製結果</button>
+      </div>
+      <div id="results" class="result-list">
+        <p class="section-intro">完成抽選後，結果會顯示在這裡。</p>
+      </div>
+    </section>
+  </div>
+</main>
+<footer>單檔 HTML · 無需登入 · 資料只在目前瀏覽器頁面中處理</footer>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const namesInput = $('names');
+  const outcomesInput = $('outcomes');
+  const startBtn = $('startBtn');
+  const copyBtn = $('copyBtn');
+  const status = $('status');
+  let finalPairs = [];
+  let currentRun = 0;
+
+  const lines = value => value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+
+  function updateCounts() {
+    const n = lines(namesInput.value).length;
+    const m = lines(outcomesInput.value).length;
+    $('nameCount').textContent = n;
+    $('outcomeCount').textContent = m;
+    const valid = n > 0 && n === m;
+    startBtn.disabled = !valid;
+    status.classList.toggle('error', !valid);
+    if (!n || !m) status.textContent = '請至少輸入一位組員及一個抽選結果。';
+    else if (n !== m) status.textContent = `目前有 ${n} 位組員、${m} 個結果，請調整為相同數量。`;
+    else {
+      status.textContent = '設定完成後，按下「開始抽選」。';
+    }
+  }
+
+  function shuffle(array) {
+    const a = array.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // 每一層只建立互不相鄰的橫梯，避免同一高度路徑交錯。
+  function makeRungs(count) {
+    const rungs = [];
+    const levels = Math.max(8, Math.min(22, count * 3 + 4));
+    for (let row = 0; row < levels; row++) {
+      const rowRungs = [];
+      const candidates = shuffle(Array.from({length: count - 1}, (_, i) => i));
+      const probability = count <= 2 ? 0.52 : 0.58;
+      for (const left of candidates) {
+        if (Math.random() > probability) continue;
+        if (rowRungs.some(r => Math.abs(r.left - left) <= 1)) continue;
+        rowRungs.push({left, right: left + 1, row});
+      }
+      rowRungs.sort((a,b) => a.left - b.left);
+      rungs.push(...rowRungs);
+    }
+    return {rungs, levels};
+  }
+
+  function tracePath(start, rungs, levels) {
+    let col = start;
+    const points = [{col, y: 58}];
+    for (let row = 0; row < levels; row++) {
+      const y = 82 + row * 36;
+      points.push({col, y});
+      const rung = rungs.find(r => r.row === row && (r.left === col || r.right === col));
+      if (rung) {
+        const next = col === rung.left ? rung.right : rung.left;
+        points.push({col: next, y});
+        col = next;
+      }
+    }
+    points.push({col, y: 100 + levels * 36});
+    return {points, end: col};
+  }
+
+  function svgEl(tag, attrs = {}) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+    return el;
+  }
+
+  function renderLadder(names, shuffledOutcomes, rungs, levels, paths) {
+    const svg = $('ladderSvg');
+    svg.replaceChildren();
+    const count = names.length;
+    const width = Math.max(560, count * 125 + 40);
+    const top = 58;
+    const bottom = 100 + levels * 36;
+    const height = bottom + 66;
+    const pad = 30;
+    const gap = (width - pad * 2) / Math.max(1, count - 1);
+    const x = i => count === 1 ? width / 2 : pad + i * gap;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.style.minWidth = Math.min(width, 500) + 'px';
+    svg.classList.remove('hidden');
+    $('placeholder').classList.add('hidden');
+
+    const defs = svgEl('defs');
+    const marker = svgEl('marker', {id:'arrow', markerWidth:7, markerHeight:7, refX:5, refY:3, orient:'auto'});
+    marker.appendChild(svgEl('path',{d:'M0,0 L6,3 L0,6 Z',fill:'#5267e8'}));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // 淡色背景與起終點標籤
+    svg.appendChild(svgEl('rect',{x:0,y:0,width,height,fill:'#fcfdff'}));
+    names.forEach((name,i) => {
+      const tx = svgEl('text',{x:x(i),y:25,'text-anchor':'middle','font-size':Math.min(15, Math.max(11, 180/count)),'font-weight':'700',fill:'#273449'});
+      tx.textContent = name;
+      svg.appendChild(tx);
+      svg.appendChild(svgEl('circle',{cx:x(i),cy:top-2,r:5,fill:'#5267e8'}));
+      svg.appendChild(svgEl('line',{x1:x(i),y1:top,x2:x(i),y2:bottom,stroke:'#cbd5e1','stroke-width':3,'stroke-linecap':'round'}));
+      const out = svgEl('text',{x:x(i),y:bottom+29,'text-anchor':'middle','font-size':Math.min(14, Math.max(10, 160/count)),'font-weight':'700',fill:'#147d57'});
+      out.textContent = shuffledOutcomes[i];
+      svg.appendChild(out);
+    });
+
+    rungs.forEach(r => {
+      const y = 82 + r.row * 36;
+      svg.appendChild(svgEl('line',{x1:x(r.left),y1:y,x2:x(r.right),y2:y,stroke:'#94a3b8','stroke-width':4,'stroke-linecap':'round'}));
+    });
+
+    // 路徑使用 SVG stroke 動畫，減少動作偏好設定時則直接顯示。
+    paths.forEach((path, i) => {
+      const d = path.points.map((p,j) => `${j ? 'L' : 'M'} ${x(p.col)} ${p.y}`).join(' ');
+      const line = svgEl('path',{d,fill:'none',stroke:['#5267e8','#e8794f','#0f9b8e','#a855f7','#d94683','#ca8a04'][i%6],
+        'stroke-width':3.5,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.88});
+      const length = line.getTotalLength ? line.getTotalLength() : 1000;
+      line.style.strokeDasharray = length;
+      line.style.strokeDashoffset = length;
+      line.style.transition = `stroke-dashoffset ${Math.max(1.2, levels*.12)}s ease`;
+      svg.appendChild(line);
+      requestAnimationFrame(() => { line.style.strokeDashoffset = '0'; });
+    });
+  }
+
+  function renderResults(pairs) {
+    const results = $('results');
+    results.replaceChildren();
+    pairs.forEach((pair, i) => {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      const number = document.createElement('div');
+      number.className = 'result-number';
+      number.textContent = String(i + 1).padStart(2, '0');
+      const text = document.createElement('div');
+      text.style.minWidth = '0';
+      const name = document.createElement('div');
+      name.className = 'result-name';
+      name.textContent = pair.name;
+      const arrow = document.createElement('div');
+      arrow.className = 'result-arrow';
+      arrow.textContent = '分配結果';
+      const value = document.createElement('div');
+      value.className = 'result-value';
+      value.textContent = pair.outcome;
+      text.append(name, arrow, value);
+      card.append(number, text);
+      results.appendChild(card);
+    });
+  }
+
+  function startGame() {
+    const names = lines(namesInput.value);
+    const outcomes = lines(outcomesInput.value);
+    if (!names.length || names.length !== outcomes.length) {
+      updateCounts();
+      return;
+    }
+    currentRun++;
+    // 先洗牌抽選結果，再把洗牌後的結果放到梯子底部。
+    const shuffledOutcomes = shuffle(outcomes);
+    const {rungs, levels} = makeRungs(names.length);
+    const paths = names.map((_, i) => tracePath(i, rungs, levels));
+    const pairs = names.map((name, i) => ({name, outcome: shuffledOutcomes[paths[i].end]}));
+    finalPairs = pairs;
+    renderLadder(names, shuffledOutcomes, rungs, levels, paths);
+    renderResults(pairs);
+    copyBtn.disabled = false;
+    $('gameState').textContent = `第 ${currentRun} 次抽選`;
+    status.classList.remove('error');
+    status.textContent = '抽選完成！可再次開始，重新洗牌並生成新的梯子。';
+  }
+
+  namesInput.addEventListener('input', updateCounts);
+  outcomesInput.addEventListener('input', updateCounts);
+  startBtn.addEventListener('click', startGame);
+  $('sampleBtn').addEventListener('click', () => {
+    namesInput.value = '小明\n小華\n小美\n阿哲\n小安';
+    outcomesInput.value = '資料蒐集\n簡報設計\n口頭報告\n文獻整理\n統整與校稿';
+    updateCounts();
+    status.textContent = '已載入範例，按下「開始抽選」即可遊玩。';
+  });
+  $('clearBtn').addEventListener('click', () => {
+    finalPairs = [];
+    $('ladderSvg').replaceChildren();
+    $('ladderSvg').classList.add('hidden');
+    $('placeholder').classList.remove('hidden');
+    $('results').innerHTML = '<p class="section-intro">完成抽選後，結果會顯示在這裡。</p>';
+    $('gameState').textContent = '尚未開始';
+    copyBtn.disabled = true;
+    status.textContent = '已清除本次結果。設定完成後可重新抽選。';
+  });
+  copyBtn.addEventListener('click', async () => {
+    if (!finalPairs.length) return;
+    const text = finalPairs.map(p => `${p.name}：${p.outcome}`).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      status.classList.remove('error');
+      status.textContent = '已複製分工結果！';
+    } catch {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      status.textContent = ok ? '已複製分工結果！' : '瀏覽器未允許複製，請手動選取結果文字。';
+    }
+  });
+  updateCounts();
+})();
+</script>
+</body>
+</html>
